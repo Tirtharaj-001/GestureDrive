@@ -44,6 +44,25 @@ def calculate_angle_deg(a, b, c) -> float:
     cos_val = max(-1.0, min(1.0, dot / (mag_ab * mag_cb)))
     return math.degrees(math.acos(cos_val))
 
+
+def angle_between_vectors_3d_deg(u: Tuple[float, float, float], v: Tuple[float, float, float]) -> float:
+    """Calculates angle in degrees between two 3D vectors u and v."""
+    dot = u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
+    mag_u = math.sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2])
+    mag_v = math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
+    denom = mag_u * mag_v
+    if denom < 1e-8:
+        return 0.0
+    cos_val = max(-1.0, min(1.0, dot / denom))
+    return math.degrees(math.acos(cos_val))
+
+
+def calculate_angle_3d_deg(a, b, c) -> float:
+    """Calculates 3D angle in degrees at vertex b formed by points a, b, c."""
+    ab = (a.x - b.x, a.y - b.y, a.z - b.z)
+    cb = (c.x - b.x, c.y - b.y, c.z - b.z)
+    return angle_between_vectors_3d_deg(ab, cb)
+
 def get_palm_center(landmarks) -> LandmarkPoint:
     """Computes palm center from Wrist, Index MCP, and Pinky MCP."""
     w = landmarks[WRIST]

@@ -23,6 +23,7 @@ class GestureType(Enum):
     FIST = "Fist"                # All fingers curled -> Brake / Stop
     OPEN_PALM = "Open Palm"      # All fingers extended -> Accelerate / Go
     PINCH = "Pinch"              # Thumb & Index tips touching -> Select / Action
+    OK = "OK"                    # Thumb & Index touching with other fingers extended -> Confirm
     POINTING = "Pointing"        # Only Index finger extended -> Point / Aim
     PEACE = "Peace"              # Index & Middle extended -> Boost / Special
     THUMBS_UP = "Thumbs Up"      # Thumb extended upwards -> Confirm / Horn
@@ -31,14 +32,14 @@ class GestureType(Enum):
     ROCK = "Rock On"             # Index & Pinky extended -> Action / Horn
 
 class GestureRecognizer:
-    def __init__(self, pinch_threshold_ratio: float = 0.35, history_len: int = 5):
+    def __init__(self, pinch_threshold_ratio: float = 0.35, history_len: int = 2):
         """
         :param pinch_threshold_ratio: Ratio of hand scale to register pinch gesture.
         :param history_len: Frames history window for temporal gesture debouncing.
         """
         self.pinch_threshold_ratio = pinch_threshold_ratio
         self.history_len = history_len
-        self._gesture_history: Dict[int, List[GestureType]] = {}
+        self._gesture_history: Dict[Any, List[GestureType]] = {}
 
     def classify_hand_gesture(self, landmarks: List[LandmarkPoint], handedness: str = "Right") -> Tuple[GestureType, float]:
         """
@@ -57,9 +58,12 @@ class GestureRecognizer:
 
         scale = max(0.01, get_hand_scale(landmarks))
 
-        # Check Pinch Gesture first (distance between THUMB_TIP and INDEX_TIP)
+        # Check Pinch / OK Gesture (distance between THUMB_TIP and INDEX_TIP)
         d_thumb_index = dist_2d(landmarks[THUMB_TIP], landmarks[INDEX_TIP])
         if d_thumb_index < scale * self.pinch_threshold_ratio:
+            # If remaining fingers (middle, ring, pinky) are extended -> OK sign
+            if middle and (ring or pinky):
+                return GestureType.OK, 0.95
             return GestureType.PINCH, 0.95
 
         # Check Fist (all 4 non-thumb fingers folded, thumb folded or neutral)
@@ -98,7 +102,7 @@ class GestureRecognizer:
 
         return GestureType.NONE, 0.50
 
-    def debounce_gesture(self, hand_id: int, raw_gesture: GestureType) -> GestureType:
+    def debounce_gesture(self, hand_id: Any, raw_gesture: GestureType) -> GestureType:
         """
         Applies a temporal sliding window filter to stabilize gesture outputs.
         """
